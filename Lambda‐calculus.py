@@ -10,6 +10,11 @@ class Term:
         self.left = left            # 左子项
         self.right = right          # 右子项
 
+        if self.term_type == 'LAM':
+            assert right is not None, f"LAM node with param {value} has no body"
+        if self.term_type == 'APP':
+            assert left is not None and right is not None, "APP node has None child"
+
     def __repr__(self):
         if self.term_type == 'VAR':
             return self.value
@@ -20,8 +25,9 @@ class Term:
         return ""
 
 class LambdaInterpreter:
-    def __init__(self, strategy="normal"):
+    def __init__(self, strategy="normal", enable_eta=True):
         self.strategy = strategy
+        self.enable_eta = enable_eta  # 控制 η 归约的开关
         self.event_history = []
         self.counter = 0
 
@@ -52,8 +58,8 @@ class LambdaInterpreter:
                 return Term('LAM', term.value, right=self.alpha_convert(term.right, old_var, new_var))
         elif term.term_type == 'APP':
             return Term('APP',
-                        self.alpha_convert(term.left, old_var, new_var),
-                        self.alpha_convert(term.right, old_var, new_var))
+                        left=self.alpha_convert(term.left, old_var, new_var),
+                        right=self.alpha_convert(term.right, old_var, new_var))
         return term
 
     def substitute(self, term, var, replacement):
@@ -110,9 +116,10 @@ class LambdaInterpreter:
             return reduced, rule
 
         # 其次尝试η归约
-        reduced, rule = self.eta_reduction(term)
-        if reduced is not None:
-            return reduced, rule
+        if self.enable_eta:
+            reduced, rule = self.eta_reduction(term)
+            if reduced is not None:
+                return reduced, rule
 
         # 递归处理子项
         if term.term_type == 'LAM':
@@ -124,25 +131,28 @@ class LambdaInterpreter:
             if self.strategy == 'normal':
                 reduced_left, rule = self.reduce_step(term.left)
                 if reduced_left is not None:
-                    return Term('APP', reduced_left, term.right), rule
+                    # print(f"reduce_step: reduced_left={reduced_left}, term.right={term.right}")
+                    return Term('APP', left=reduced_left, right=term.right), rule
                 reduced_right, rule = self.reduce_step(term.right)
                 if reduced_right is not None:
-                    return Term('APP', term.left, reduced_right), rule
+                    return Term('APP', left=term.left, right=reduced_right), rule
             elif self.strategy == 'applicative':
                 reduced_right, rule = self.reduce_step(term.right)
                 if reduced_right is not None:
-                    return Term('APP', term.left, reduced_right), rule
+                    return Term('APP', left=term.left, right=reduced_right), rule
                 reduced_left, rule = self.reduce_step(term.left)
                 if reduced_left is not None:
-                    return Term('APP', reduced_left, term.right), rule
+                    return Term('APP', left=reduced_left, right=term.right), rule
 
         return None, None
 
-    def evaluate(self, term, limit=100):
+    def evaluate(self, term, limit=None):
         clock = 0
         current_term = copy.deepcopy(term)
         history = [(clock, copy.deepcopy(current_term))]
-        while clock < limit:
+        while True:
+            if limit is not None and clock >= limit:
+                break
             reduced_term, rule = self.reduce_step(current_term)
             if reduced_term is None:
                 break
@@ -231,16 +241,22 @@ def CDR():
 
 # 算术操作
 def PRED():
-    n = Term('VAR', 'n')
-    t = Term('VAR', 'T')  # 假设T已定义为CONS生成器
     return Term('LAM', 'n',
+        right=Term('LAM', 'f',
+            right=Term('LAM', 'x',
                 right=Term('APP',
-                           left=CDR(),
-                           right=Term('APP',
-                                      left=Term('APP', left=n, right=t),
-                                      right=Term('APP',
-                                                 left=Term('APP', left=CONS(), right=church_zero()),
-                                                 right=church_zero()))))
+                    left=Term('APP',
+                        left=Term('APP', left=Term('VAR', 'n'),
+                                  right=Term('LAM', 'g',
+                                             right=Term('LAM', 'h',
+                                                        right=Term('APP',
+                                                                   left=Term('VAR', 'h'),
+                                                                   right=Term('APP',
+                                                                              left=Term('VAR', 'g'),
+                                                                              right=Term('VAR', 'f')))))),
+                        right=Term('LAM', 'u', right=Term('VAR', 'x'))),
+                    right=Term('LAM', 'u', right=Term('VAR', 'u'))))))
+
 
 
 def ISZERO():
@@ -270,7 +286,7 @@ def MUL():
 
 # 最终阶乘函数
 def FACT():
-    Y = Y_combinator()  # 使用之前定义的Y组合子
+    Y = Y_combinator()
     f = Term('VAR', 'f')
     n = Term('VAR', 'n')
 
@@ -290,7 +306,35 @@ def FACT():
 
     return Term('APP', left=Y, right=fact_body)
 
+def church_to_int(church_num):
+    # church_num 是 Term 对象，表示 λf.λx.f(f(...(x)))
+    # 我们用 Python 函数模拟 f(x) = x+1，起点0
+    def apply(term, f, x):
+        # 直接模拟应用 Church 数字结构
+        # 需要递归解析 Term，转换成整数
+        if term.term_type == 'LAM':
+            return apply(term.right, f, x)
+        elif term.term_type == 'APP':
+            if term.left.term_type == 'VAR' and term.left.value == 'f':
+                return f(apply(term.right, f, x))
+            elif term.left.term_type == 'VAR' and term.left.value == 'x':
+                return x
+            else:
+                return apply(term.left, f, x)
+        elif term.term_type == 'VAR':
+            if term.value == 'x':
+                return x
+            else:
+                return 0
+        return 0
+
+    return apply(church_num, lambda n: n+1, 0)
+
+
+
+
 if __name__ == "__main__":
+    # print(PRED())
     # (λx.λy.x y) z
     term = Term('APP',
                left=Term('LAM', 'x',
@@ -301,16 +345,18 @@ if __name__ == "__main__":
                right=Term('VAR', 'z'))
     print("原始项:", term)
 
-    interpreter = LambdaInterpreter(strategy="normal")
+    interpreter = LambdaInterpreter(strategy="normal", enable_eta=False)
     final_term, history = interpreter.evaluate(term)
+    print("beta归约结果:", final_term)
+
     print("\n归约历史:")
     for _, t in history:
         print(t)
     # 阿尔法转换
     k = Term('LAM', 'x', right=Term('VAR', 'x'))  # λx.x
     converted = interpreter.alpha_convert(k, 'x', 'y')
-    print("转换前:", k)
-    print("转换后:", converted)
+    print("\n转换前:", k)
+    print("alpha归约转换后:", converted)
     # 应输出：λy.y
 
     # η归约测试
@@ -319,7 +365,8 @@ if __name__ == "__main__":
                              left=Term('VAR', 'f'),
                              right=Term('VAR', 'x')))
     print("\nη可归约项:", eta_term)
-    reduced, _ = interpreter.eta_reduction(eta_term)
+    interpreter2 = LambdaInterpreter(strategy="normal")
+    reduced, _ = interpreter2.eta_reduction(eta_term)
     print("η归约结果:", reduced)
 
     # 输出归约历史
@@ -329,17 +376,16 @@ if __name__ == "__main__":
 
     # Church 数字3
     three = church_n(3)
-    print("Church数字3:", three)
+    print("\nChurch数字3:", three)
 
-    interpreter = LambdaInterpreter(strategy="normal")
     fact = FACT()
-    input3 = church_n(3)
-    app_term = Term('APP', left=fact, right=input3)
-    # mul=mult()
-    # print(mul)
-    print(fact)
-    # print(church_false)
-    final_term, history = interpreter.evaluate(app_term)
-    # print(history)
+    input = church_n(3)
+    app_term = Term('APP', left=fact, right=input)
+
+    reduced_term, history = interpreter.evaluate(app_term)  # 适当增加归约步数
+
+    print("最终归约结果:", reduced_term)
+    print("转换成整数:", church_to_int(reduced_term))
+
     print("\n阶乘结果:")
-    print(final_term)
+    print(reduced_term)
