@@ -1,6 +1,6 @@
 import copy
 from collections import namedtuple
-
+import matplotlib.pyplot as plt
 ReductionEvent = namedtuple("ReductionEvent", "clock term reduced_term rule")
 
 class Term:
@@ -31,9 +31,14 @@ class LambdaInterpreter:
         self.event_history = []
         self.counter = 0
 
+        import logging
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger("LambdaInterpreter")
+
     def fresh_var(self, base='x'):
         self.counter += 1
         return f"{base}_{self.counter}"
+
 
     def free_vars(self, term):
         if term is None:
@@ -146,7 +151,31 @@ class LambdaInterpreter:
 
         return None, None
 
-    def evaluate(self, term, limit=None):
+    def to_latex(self, term: Term) -> str:
+        if term.term_type == 'VAR':
+            return term.value
+        elif term.term_type == 'LAM':
+            return f"\\lambda {term.value}. {self.to_latex(term.right)}"
+        elif term.term_type == 'APP':
+            return f"({self.to_latex(term.left)}~{self.to_latex(term.right)})"
+
+    def latex_history(self, history):
+        lines = []
+        for i, (_, term) in enumerate(history):
+            latex = self.to_latex(term)
+            lines.append(f"\\[{latex}\\]")
+        return "\n".join(lines)
+
+    def evaluate(self, term_or_str, limit=None):
+        # 支持字符串输入，简单示例只支持单变量 λx.x
+        if isinstance(term_or_str, str):
+            # 简单解析例子，复杂请自己扩展
+            if term_or_str.strip() == "λx.x":
+                term = Term('LAM', 'x', right=Term('VAR', 'x'))
+            else:
+                raise ValueError("暂不支持复杂字符串解析，请传 Term 对象")
+        else:
+            term = term_or_str
         clock = 0
         current_term = copy.deepcopy(term)
         history = [(clock, copy.deepcopy(current_term))]
@@ -301,8 +330,8 @@ def FACT():
     fact_body = Term('LAM', 'f',
                      right=Term('LAM', 'n',
                                 right=Term('APP',
-                                           left=Term('APP', left=condition, right=then_branch),
-                                           right=else_branch)))
+                                   left=Term('APP', left=condition, right=then_branch),
+                                   right=else_branch)))
 
     return Term('APP', left=Y, right=fact_body)
 
@@ -330,8 +359,38 @@ def church_to_int(church_num):
 
     return apply(church_num, lambda n: n+1, 0)
 
+def term_to_latex(term):
+    if term.term_type == 'VAR':
+        return term.value
+    elif term.term_type == 'LAM':
+        return r"\lambda {}.{}".format(term.value, term_to_latex(term.right))
+    elif term.term_type == 'APP':
+        left = term_to_latex(term.left)
+        right = term_to_latex(term.right)
+        # 添加括号以避免歧义
+        if term.left.term_type in ['LAM', 'APP']:
+            left = f"({left})"
+        if term.right.term_type in ['LAM', 'APP']:
+            right = f"({right})"
+        return f"{left} {right}"
+    else:
+        raise ValueError(f"Unknown term type: {term.term_type}")
 
+def history_to_latex(history):
+    lines = []
+    for i, term in history:
+        latex = term_to_latex(term)
+        lines.append(f"{i}:\\quad {latex}")
+    return lines
 
+def render_latex_to_image(latex_lines):
+    fig, ax = plt.subplots(figsize=(8, len(latex_lines)*0.8))
+    ax.axis('off')
+    for i, line in enumerate(latex_lines):
+        y = 1 - i * 0.15  # 每一行下移一点
+        ax.text(0, y, f"${line}$", fontsize=16, ha='left', va='top')
+    plt.tight_layout()
+    plt.show()
 
 if __name__ == "__main__":
     # print(PRED())
@@ -347,11 +406,14 @@ if __name__ == "__main__":
 
     interpreter = LambdaInterpreter(strategy="normal", enable_eta=False)
     final_term, history = interpreter.evaluate(term)
-    print("beta归约结果:", final_term)
+    #render
+    latex_output = history_to_latex(history)
+    render_latex_to_image(latex_output)
 
     print("\n归约历史:")
     for _, t in history:
         print(t)
+
     # 阿尔法转换
     k = Term('LAM', 'x', right=Term('VAR', 'x'))  # λx.x
     converted = interpreter.alpha_convert(k, 'x', 'y')
@@ -359,15 +421,15 @@ if __name__ == "__main__":
     print("alpha归约转换后:", converted)
     # 应输出：λy.y
 
-    # η归约测试
+    # eta归约测试
     eta_term = Term('LAM', 'x',
                    right=Term('APP',
                              left=Term('VAR', 'f'),
                              right=Term('VAR', 'x')))
-    print("\nη可归约项:", eta_term)
+    print("\neta可归约项:", eta_term)
     interpreter2 = LambdaInterpreter(strategy="normal")
     reduced, _ = interpreter2.eta_reduction(eta_term)
-    print("η归约结果:", reduced)
+    print("eta归约结果:", reduced)
 
     # 输出归约历史
     print("\n归约历史:")
