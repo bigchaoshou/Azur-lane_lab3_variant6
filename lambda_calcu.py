@@ -1,6 +1,7 @@
 import copy
 from collections import namedtuple
 import matplotlib.pyplot as plt
+import re
 ReductionEvent = namedtuple("ReductionEvent", "clock term reduced_term rule")
 
 class Term:
@@ -23,6 +24,63 @@ class Term:
         elif self.term_type == 'APP':
             return f"({self.left} {self.right})"
         return ""
+
+def tokenize(expr):
+    tokens = re.findall(r'[λ\\]|[a-zA-Z_]\w*|\(|\)|\.', expr)
+    return tokens
+
+class LambdaParser:
+    def __init__(self, tokens):
+        self.tokens = tokens
+        self.pos = 0
+
+    def current(self):
+        return self.tokens[self.pos] if self.pos < len(self.tokens) else None
+
+    def eat(self, expected=None):
+        tok = self.current()
+        if expected and tok != expected:
+            raise SyntaxError(f"Expected {expected} but got {tok}")
+        self.pos += 1
+        return tok
+
+    def parse(self):
+        return self.parse_expr()
+
+    def parse_expr(self):
+        term = self.parse_atom()
+        while True:
+            next_tok = self.current()
+            if next_tok and next_tok not in [')', '.']:
+                term = Term('APP', left=term, right=self.parse_atom())
+            else:
+                break
+        return term
+
+    def parse_atom(self):
+        tok = self.current()
+        if tok in ['λ', '\\']:
+            self.eat()
+            var = self.eat()
+            self.eat('.')
+            body = self.parse_expr()
+            return Term('LAM', var, right=body)
+        elif tok == '(':
+            self.eat('(')
+            expr = self.parse_expr()
+            self.eat(')')
+            return expr
+        elif re.match(r'[a-zA-Z_]\w*', tok):
+            return Term('VAR', self.eat())
+        else:
+            raise SyntaxError(f"Unexpected token: {tok}")
+
+def parse_lambda_expr(expr_str):
+    tokens = tokenize(expr_str)
+    parser = LambdaParser(tokens)
+    return parser.parse()
+
+
 
 class LambdaInterpreter:
     def __init__(self, strategy="normal", enable_eta=True):
@@ -167,15 +225,11 @@ class LambdaInterpreter:
         return "\n".join(lines)
 
     def evaluate(self, term_or_str, limit=None):
-        # 支持字符串输入，简单示例只支持单变量 λx.x
         if isinstance(term_or_str, str):
-            # 简单解析例子，复杂请自己扩展
-            if term_or_str.strip() == "λx.x":
-                term = Term('LAM', 'x', right=Term('VAR', 'x'))
-            else:
-                raise ValueError("暂不支持复杂字符串解析，请传 Term 对象")
+            term = parse_lambda_expr(term_or_str)
         else:
             term = term_or_str
+        
         clock = 0
         current_term = copy.deepcopy(term)
         history = [(clock, copy.deepcopy(current_term))]
@@ -461,14 +515,24 @@ if __name__ == "__main__":
 #         print(term)
 
 
-    fact = FACT()
-    input = church_n(4)
-    app_term = Term('APP', left=fact, right=input)
+    # fact = FACT()
+    # input = church_n(4)
+    # app_term = Term('APP', left=fact, right=input)
+    #
+    # reduced_term, history = interpreter.evaluate(app_term)  # 适当增加归约步数
+    #
+    # print("最终归约结果:", reduced_term)
+    # print("转换成整数:", church_to_int(reduced_term))
+    #
+    # print("\n阶乘结果:")
+    # print(reduced_term)
 
-    reduced_term, history = interpreter.evaluate(app_term)  # 适当增加归约步数
+    term1,history1 = interpreter.evaluate("λx.x")
+    term2,history2 =interpreter.evaluate("((λx.x) y)")
+    term3,history3 = interpreter.evaluate("(λx.(x x)) (λx.(x x))", limit=10)
+    term4, history4 = interpreter.evaluate("(λx.λy.x y) z")
 
-    print("最终归约结果:", reduced_term)
-    print("转换成整数:", church_to_int(reduced_term))
-
-    print("\n阶乘结果:")
-    print(reduced_term)
+    print(term1)  # 输出: (λx.x)
+    print(term2)  # 输出: (λx.x)
+    print(term3)  # 正常会无限循环，设置 limit 截断
+    print(term4)  # 正常会无限循环，设置 limit 截断
