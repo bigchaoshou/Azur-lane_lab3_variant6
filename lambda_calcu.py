@@ -287,6 +287,8 @@ class LambdaInterpreter:
             return f"\\lambda {term.value}. {self.to_latex(term.right)}"
         elif term.term_type == 'APP':
             return f"({self.to_latex(term.left)}~{self.to_latex(term.right)})"
+        else:
+            raise ValueError(f"Unknown term type: {term.term_type}")
 
     def latex_history(self, history):
         lines = []
