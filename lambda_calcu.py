@@ -10,11 +10,6 @@ ReductionEvent = namedtuple(
 )
 
 
-def tokenize(expr):
-    tokens = re.findall(r'[λ\\]|[a-zA-Z_]\w*|\(|\)|\.', expr)
-    return tokens
-
-
 class Term:
     def __init__(self, term_type, value=None, left=None, right=None):
         self.term_type = term_type  # 'VAR', 'LAM', 'APP'
