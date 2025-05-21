@@ -381,49 +381,88 @@ def church_or():
 def church_one():
 
     return church_n(1)
+
 def PRED():
-    return Term('LAM', 'n',
-        right=Term('LAM', 'f',
-            right=Term('LAM', 'x',
-                right=Term('APP',
-                    left=Term('APP',
-                        left=Term('APP',
-                            left=Term('VAR', 'n'),
-                                right=Term('LAM', 'g',
-                                    right=Term('LAM', 'h',
-                                        right=Term('APP',
-                                            left=Term('VAR', 'h'),
-                                                right=Term('APP',
-                                                    left=Term('VAR', 'g'),
-                                                        right=Term('VAR','f')))))),
-                                                            right=Term('LAM', 'u',
-                                                                right=Term('VAR','x'))),
-                                                                    right=Term('LAM', 'u',
-                                                                        right=Term('VAR','u'))))))
+    return Term('LAM', 'n', right=Term(
+        'LAM', 'f', right=Term(
+            'LAM', 'x', right=Term(
+                'APP',
+                left=Term(
+                    'APP',
+                    left=Term(
+                        'APP',
+                        left=Term('VAR', 'n'),
+                        right=Term(
+                            'LAM', 'g', right=Term(
+                                'LAM', 'h', right=Term(
+                                    'APP',
+                                    left=Term('VAR', 'h'),
+                                    right=Term(
+                                        'APP',
+                                        left=Term('VAR', 'g'),
+                                        right=Term('VAR', 'f')
+                                    )
+                                )
+                            )
+                        )
+                    ),
+                    right=Term(
+                        'LAM', 'u', right=Term('VAR', 'x')
+                    )
+                ),
+                right=Term(
+                    'LAM', 'u', right=Term('VAR', 'u')
+                )
+            )
+        )
+    ))
+
 
 def MUL():
-    return Term('LAM', 'm',
-               right=Term('LAM', 'n',
-                         right=Term('LAM', 'f',
-                                   right=Term('APP',
-                                             left=Term('VAR', 'm'),
-                                             right=Term('APP',
-                                                       left=Term('VAR',
-                                                                 'n'),
-                                                       right=Term('VAR', 'f'))))))
+    return Term(
+        'LAM', 'm',
+        right=Term(
+            'LAM', 'n',
+            right=Term(
+                'LAM', 'f',
+                right=Term(
+                    'APP',
+                    left=Term('VAR', 'm'),
+                    right=Term(
+                        'APP',
+                        left=Term('VAR', 'n'),
+                        right=Term('VAR', 'f')
+                    )
+                )
+            )
+        )
+    )
+
 
 
 def CONS():
     a = Term('VAR', 'a')
     b = Term('VAR', 'b')
     s = Term('VAR', 's')
-    return Term('LAM', 'a',
-                right=Term('LAM', 'b',
-                           right=Term('LAM', 's',
-                                      right=Term('APP',
-                                                 left=Term('APP', left=s,
-                                                           right=a),
-                                                 right=b))))
+    return Term(
+        'LAM', 'a',
+        right=Term(
+            'LAM', 'b',
+            right=Term(
+                'LAM', 's',
+                right=Term(
+                    'APP',
+                    left=Term(
+                        'APP',
+                        left=s,
+                        right=a
+                    ),
+                    right=b
+                )
+            )
+        )
+    )
+
 
 
 def CAR():
@@ -438,7 +477,6 @@ def CDR():
                 right=Term('APP', left=p, right=church_false()))
 
 
-# Factorial Implementation
 def FACT():
     Y = Y_combinator()
     f = Term('VAR', 'f')
@@ -446,18 +484,39 @@ def FACT():
 
     condition = Term('APP', left=ISZERO(), right=n)
     then_branch = church_one()
-    else_branch = Term('APP',
-                       left=Term('APP', left=MUL(), right=n),
-                       right=Term('APP',
-                                  left=f,
-                                  right=Term('APP', left=PRED(), right=n)))
+    else_branch = Term(
+        'APP',
+        left=Term(
+            'APP',
+            left=MUL(),
+            right=n
+        ),
+        right=Term(
+            'APP',
+            left=f,
+            right=Term(
+                'APP',
+                left=PRED(),
+                right=n
+            )
+        )
+    )
 
-    fact_body = Term('LAM', 'f',
-                     right=Term('LAM', 'n',
-                                right=Term('APP',
-                                           left=Term('APP', left=condition,
-                                                     right=then_branch),
-                                           right=else_branch)))
+    fact_body = Term(
+        'LAM', 'f',
+        right=Term(
+            'LAM', 'n',
+            right=Term(
+                'APP',
+                left=Term(
+                    'APP',
+                    left=condition,
+                    right=then_branch
+                ),
+                right=else_branch
+            )
+        )
+    )
 
     return Term('APP', left=Y, right=fact_body)
 

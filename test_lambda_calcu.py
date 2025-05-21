@@ -78,9 +78,12 @@ def test_mul():
 def test_cons_car_cdr(interpreter3):
     one = church_one()
     two = church_n(2)
-    cons_expr = Term('APP',
+
+    cons_expr = Term(
+        'APP',
         left=Term('APP', left=CONS(), right=one),
-            right=two)
+        right=two
+    )
 
     car_expr = Term('APP', left=CAR(), right=cons_expr)
     cdr_expr = Term('APP', left=CDR(), right=cons_expr)
