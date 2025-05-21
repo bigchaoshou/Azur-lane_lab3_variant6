@@ -1,57 +1,51 @@
-# Azur lane - lab 3 - variant 6
+# Lambda Calculus Interpreter - Lab 3 - Variant 6
 
 ## Project structure
 
-- `Binary_tree.py` -- implementation of `Binary tree` class with `add`
-  `set`, `remove`, `search`, `returnsize`, `is_member`, `reverse`,
-  `fromlist`, `tolist`, `filter`, `map`, `reduce_process`, `iterator`
-  `is_empty`, `concat` features.
-- `test_api.py` -- Unit tests for the Binary tree class.
+- `lambda_calc.py` — Implementation of Lambda Calculus Interpreter including `LambdaVar`, `LambdaAbs`, and `LambdaApp` classes with support for:
+  `alpha_conversion`, `beta_reduction`, `eta_reduction`, `normal_order`,
+  `applicative_order`, `evaluate`, `to_latex`, `visualize`, and Church encoding.
+- `test_lambda_calc.py` — Unit tests for core lambda expression processing and evaluation functions.
 
 ## Features
 
-- **size**  
-  Return size of the binary tree.
-- **add**
-  Add a new element.
-- **search**  
-  Find the key and return its value.
-- **set**  
-  Update the value with specific key.
-- **remove**  
-  Delete the element by key.
-- **member**  
-  Check if the value is member of binary tree.
-- **reverse**
-  Reverse the sequence of the value correspond to key.
-- **from_list**
-  Form binary tree from list.
-- **to_list**
-  Form list from binary tree.
-- **filter**
-  Return element of specific condition.
-- **map**
-  Apply function to every element of binary tree.
-- **reduce**
-  Apply a particular function passed in its argument to all the elements.
-- **iterator**
-  Return an element of structure and when use the function again return the
-  next one according to key.
-- **empty**
-  Decide if the structure is empty.
-- **concat**
-  Combine two binary tree to one.
+- **parse**
+  Parse string input into lambda calculus term structure.
+- **pretty**
+  Convert term into human-readable string form.
+- **alpha_conversion**
+  Rename bound variables to avoid naming conflicts.
+- **beta_reduction**
+  Function application: substitute argument into abstraction.
+- **eta_reduction**
+  Simplify expressions where applicable.
+- **normal_order**
+  Reduce the outermost leftmost reducible expression first.
+- **applicative_order**
+  Evaluate arguments before applying the function.
+- **evaluate**
+  Perform step-by-step reduction with history tracking.
+- **to_latex**
+  Convert lambda term into LaTeX format.
+- **visualize**
+  Render the reduction history using matplotlib with LaTeX.
+- **church_n**
+  Generate Church-encoded numbers.
+- **is_zero**
+  Determine if Church numeral is zero.
+- **Y_combinator**
+  Define the fixed-point combinator for recursion.
 
 ## Contribution
 
-- Liu Jiayi -- Binary_tree.
-- Tong Hui -- test_binary_tree.
+- Liu Jiayi — lambda_calc.py.
+- Tong Hui — test_lambda_calc.py.
 
 ## Changelog
 
-- 08.04.2025 - 2  
-   - Update test_binary_tree.py.
-- 08.04.2025 - 1  
-   - Update README. Add Binary_tree.py.
-- 01.04.2025 - 0  
-   - Initial
+- 20.05.2025 - 2  
+  - Add visualization and rendering support via matplotlib.
+- 18.05.2025 - 1  
+  - Implement beta/eta reduction and parsing support.
+- 15.05.2025 - 0  
+  - Initial commit with Lambda term structure and base evaluator.
