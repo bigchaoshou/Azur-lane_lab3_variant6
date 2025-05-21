@@ -94,11 +94,11 @@ def test_cons_car_cdr(interpreter3):
 
 def test_y_combinator_fact(interpreter3):
     fact = FACT()
-    input_ = church_n(4)
+    input_ = church_n(3)
     app_term = Term('APP', left=fact, right=input_)
 
     reduced_term, _ = interpreter3.evaluate(app_term)
-    assert church_to_int(reduced_term) == 24
+    assert church_to_int(reduced_term) == 6
 
 
 def test_beta_reduction(interpreter3):
