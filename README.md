@@ -2,10 +2,12 @@
 
 ## Project structure
 
-- `lambda_calc.py` — Implementation of Lambda Calculus Interpreter including `LambdaVar`, `LambdaAbs`, and `LambdaApp` classes with support for:
+- `lambda_calc.py` — Implementation of Lambda Calculus Interpreter including
+- `LambdaVar`, `LambdaAbs`, and `LambdaApp` classes with support for:
   `alpha_conversion`, `beta_reduction`, `eta_reduction`, `normal_order`,
   `applicative_order`, `evaluate`, `to_latex`, `visualize`, and Church encoding.
-- `test_lambda_calc.py` — Unit tests for core lambda expression processing and evaluation functions.
+- `test_lambda_calc.py` — Unit tests for core lambda expression processing
+- and evaluation functions.
 
 ## Features
 
@@ -44,8 +46,8 @@
 ## Changelog
 
 - 20.05.2025 - 2  
-  - Add visualization and rendering support via matplotlib.
+- Add visualization and rendering support via matplotlib.
 - 18.05.2025 - 1  
-  - Implement beta/eta reduction and parsing support.
+- Implement beta/eta reduction and parsing support.
 - 15.05.2025 - 0  
-  - Initial commit with Lambda term structure and base evaluator.
+- Initial commit with Lambda term structure and base evaluator.
