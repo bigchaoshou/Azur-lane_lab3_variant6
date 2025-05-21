@@ -37,6 +37,33 @@ def tokenize(expr):
     return tokens
 
 
+import re
+import copy
+import logging
+
+
+class Term:
+    def __init__(self, term_type, value=None, left=None, right=None):
+        self.term_type = term_type  # 'VAR', 'LAM', 'APP'
+        self.value = value
+        self.left = left
+        self.right = right
+
+    def __repr__(self):
+        if self.term_type == 'VAR':
+            return self.value
+        elif self.term_type == 'LAM':
+            return f"(λ{self.value}.{self.right})"
+        elif self.term_type == 'APP':
+            return f"({self.left} {self.right})"
+        return "<InvalidTerm>"
+
+
+# Tokenizer for lambda expressions
+def tokenize(expr_str):
+    return re.findall(r'[\\λ().]|[a-zA-Z_][a-zA-Z0-9_]*', expr_str)
+
+
 class LambdaParser:
     def __init__(self, tokens):
         self.tokens = tokens
@@ -67,21 +94,24 @@ class LambdaParser:
 
     def parse_atom(self):
         tok = self.current()
+
         if tok in ['λ', '\\']:
             self.eat()
             var = self.eat()
             self.eat('.')
             body = self.parse_expr()
             return Term('LAM', var, right=body)
+
         elif tok == '(':
             self.eat('(')
             expr = self.parse_expr()
             self.eat(')')
             return expr
-        elif re.match(r'[a-zA-Z_]\w*', tok):
+
+        elif re.match(r'[a-zA-Z_][a-zA-Z0-9_]*', tok):
             return Term('VAR', self.eat())
-        else:
-            raise SyntaxError(f"Unexpected token: {tok}")
+
+        raise SyntaxError(f"Unexpected token: {tok}")
 
 
 def parse_lambda_expr(expr_str):
@@ -116,25 +146,22 @@ class LambdaInterpreter:
         elif term.term_type == 'LAM':
             return self.free_vars(term.right) - {term.value}
         elif term.term_type == 'APP':
-            return (self.free_vars(term.left)
-                    | self.free_vars(term.right))
+            return self.free_vars(term.left) | self.free_vars(term.right)
         return set()
 
     def alpha_convert(self, term, old_var, new_var):
         if term is None:
             return None
         if term.term_type == 'VAR':
-            return (Term('VAR', new_var)
-                    if term.value == old_var else term)
+            return Term('VAR', new_var) if term.value == old_var else term
         elif term.term_type == 'LAM':
             if term.value == old_var:
                 return Term('LAM', new_var,
                             right=self.alpha_convert(term.right,
-                                                    old_var, new_var))
-            else:
-                return Term('LAM', term.value,
-                           right=self.alpha_convert(term.right,
-                                                   old_var, new_var))
+                                                      old_var, new_var))
+            return Term('LAM', term.value,
+                        right=self.alpha_convert(term.right,
+                                                 old_var, new_var))
         elif term.term_type == 'APP':
             return Term('APP',
                         left=self.alpha_convert(term.left, old_var, new_var),
@@ -145,21 +172,18 @@ class LambdaInterpreter:
         if term is None:
             return None
         if term.term_type == 'VAR':
-            return (copy.deepcopy(replacement)
-                    if term.value == var else Term('VAR', term.value))
+            return copy.deepcopy(replacement) if term.value == var else term
         elif term.term_type == 'LAM':
             if term.value == var:
                 return term
             free_in_repl = self.free_vars(replacement)
             if term.value in free_in_repl:
                 new_var = self.fresh_var(term.value)
-                new_body = self.alpha_convert(term.right,
-                                            term.value, new_var)
+                new_body = self.alpha_convert(term.right, term.value, new_var)
                 new_body = self.substitute(new_body, var, replacement)
                 return Term('LAM', new_var, right=new_body)
-            else:
-                new_body = self.substitute(term.right, var, replacement)
-                return Term('LAM', term.value, right=new_body)
+            new_body = self.substitute(term.right, var, replacement)
+            return Term('LAM', term.value, right=new_body)
         elif term.term_type == 'APP':
             new_left = self.substitute(term.left, var, replacement)
             new_right = self.substitute(term.right, var, replacement)
@@ -167,36 +191,48 @@ class LambdaInterpreter:
         return term
 
     def beta_reduction(self, term):
-        self._log(f"Attempt beta reduction: {self.to_latex(term)}")
+        self._log(f"Attempt β-reduction: {self.to_latex(term)}")
+
         if term is None or term.term_type != 'APP':
-            self._log("Beta reduction failed: Not APP type or None")
+            self._log("β-reduction failed: not APP or None")
             return None, None
+
         if term.left and term.left.term_type == 'LAM':
             lambda_term = term.left
             arg = term.right
+
             reduced_body = self.substitute(lambda_term.right,
-                                         lambda_term.value, arg)
-            self._log(f"Beta success: {lambda_term.value}->{self.to_latex(arg)}")
+                                           lambda_term.value,
+                                           arg)
+
+            self._log(f"β success: {lambda_term.value} → "
+                      f"{self.to_latex(arg)}")
             self._log(f"Result: {self.to_latex(reduced_body)}")
+
             return reduced_body, 'β'
-        self._log("Beta failed: Left not LAM")
+
+        self._log("β failed: left is not LAM")
         return None, None
 
     def eta_reduction(self, term):
-        self._log(f"Attempt eta reduction: {self.to_latex(term)}")
+        self._log(f"Attempt η-reduction: {self.to_latex(term)}")
+
         if term is None or term.term_type != 'LAM':
-            self._log("Eta failed: Not LAM type or None")
+            self._log("η failed: not LAM")
             return None, None
+
         var = term.value
         body = term.right
+
         if (body and body.term_type == 'APP'
-            and body.right and body.right.term_type == 'VAR'
-            and body.right.value == var
-            and var not in self.free_vars(body.left)):
-            self._log(f"Eta success: remove redundant λ{var}")
+                and body.right.term_type == 'VAR'
+                and body.right.value == var
+                and var not in self.free_vars(body.left)):
+            self._log(f"η success: remove redundant λ{var}")
             self._log(f"Result: {self.to_latex(body.left)}")
             return body.left, 'η'
-        self._log("Eta reduction failed")
+
+        self._log("η reduction failed")
         return None, None
 
     def reduce_step(self, term):
@@ -207,28 +243,24 @@ class LambdaInterpreter:
 
         self.indent_level += 1
 
-        # Prioritize beta reduction
         reduced, rule = self.beta_reduction(term)
         if reduced:
             self.indent_level -= 1
-            self._log(f"Beta success, return {self.to_latex(reduced)}")
+            self._log(f"β success, return {self.to_latex(reduced)}")
             return reduced, rule
 
-        # Then eta reduction if enabled
         if self.enable_eta:
             reduced, rule = self.eta_reduction(term)
             if reduced:
                 self.indent_level -= 1
-                self._log(f"Eta success, return {self.to_latex(reduced)}")
+                self._log(f"η success, return {self.to_latex(reduced)}")
                 return reduced, rule
 
-        # Recursively reduce subterms
         if term.term_type == 'LAM':
             reduced_body, rule = self.reduce_step(term.right)
             self.indent_level -= 1
             if reduced_body:
-                return (Term('LAM', term.value, right=reduced_body),
-                        rule)
+                return Term('LAM', term.value, right=reduced_body), rule
             return None, None
 
         elif term.term_type == 'APP':
@@ -236,35 +268,28 @@ class LambdaInterpreter:
                 reduced_left, rule = self.reduce_step(term.left)
                 if reduced_left:
                     self.indent_level -= 1
-                    return (Term('APP', left=reduced_left, right=term.right),
-                            rule)
+                    return Term('APP', left=reduced_left, right=term.right), rule
 
                 reduced_right, rule = self.reduce_step(term.right)
                 self.indent_level -= 1
                 if reduced_right:
-                    return (Term('APP', left=term.left, right=reduced_right),
-                            rule)
+                    return Term('APP', left=term.left, right=reduced_right), rule
 
             elif self.strategy == 'applicative':
                 reduced_right, rule = self.reduce_step(term.right)
                 if reduced_right:
                     self.indent_level -= 1
-                    return (Term('APP', left=term.left, right=reduced_right),
-                            rule)
+                    return Term('APP', left=term.left, right=reduced_right), rule
 
                 reduced_left, rule = self.reduce_step(term.left)
                 self.indent_level -= 1
                 if reduced_left:
-                    return (Term('APP', left=reduced_left, right=term.right),
-                            rule)
+                    return Term('APP', left=reduced_left, right=term.right), rule
 
-            self.indent_level -= 1
-
-        else:
-            self.indent_level -= 1
-
+        self.indent_level -= 1
         self._log("No reduction")
         return None, None
+
 
     def to_latex(self, term: Term) -> str:
         if term.term_type == 'VAR':
@@ -318,65 +343,146 @@ class LambdaInterpreter:
 
 # Church encodings and combinators
 def church_true():
-    return Term('LAM', 't',
-               right=Term('LAM', 'f', right=Term('VAR', 't')))
+    return Term(
+        'LAM', 't',
+        right=Term(
+            'LAM', 'f',
+            right=Term('VAR', 't')
+        )
+    )
+
 
 def church_false():
-    return Term('LAM', 't',
-               right=Term('LAM', 'f', right=Term('VAR', 'f')))
+    return Term(
+        'LAM', 't',
+        right=Term(
+            'LAM', 'f',
+            right=Term('VAR', 'f')
+        )
+    )
+
 
 def church_zero():
-    return Term('LAM', 'f',
-               right=Term('LAM', 'x', right=Term('VAR', 'x')))
+    return Term(
+        'LAM', 'f',
+        right=Term(
+            'LAM', 'x',
+            right=Term('VAR', 'x')
+        )
+    )
+
 
 def church_n(n):
     x = Term('VAR', 'x')
     body = x
     for _ in range(n):
         body = Term('APP', left=Term('VAR', 'f'), right=body)
-    return Term('LAM', 'f', right=Term('LAM', 'x', right=body))
+    return Term(
+        'LAM', 'f',
+        right=Term('LAM', 'x', right=body)
+    )
+
 
 def Y_combinator():
     f = Term('VAR', 'f')
     g = Term('VAR', 'g')
     y = Term('VAR', 'y')
-    inner_lambda = Term('LAM', 'g',
-                       right=Term('APP', left=f,
-                                 right=Term('LAM', 'y',
-                                           right=Term('APP',
-                                                     left=Term('APP',
-                                                              left=g, right=g),
-                                                     right=y))))
-    Y = Term('LAM', 'f',
-            right=Term('APP',
-                      left=Term('LAM', 'g',
-                               right=Term('APP', left=f,
-                                         right=Term('APP', left=g, right=g))),
-                      right=inner_lambda))
-    return Y
 
-# Arithmetic operations
+    inner_lambda = Term(
+        'LAM', 'g',
+        right=Term(
+            'APP',
+            left=f,
+            right=Term(
+                'LAM', 'y',
+                right=Term(
+                    'APP',
+                    left=Term(
+                        'APP',
+                        left=g,
+                        right=g
+                    ),
+                    right=y
+                )
+            )
+        )
+    )
+
+    return Term(
+        'LAM', 'f',
+        right=Term(
+            'APP',
+            left=Term(
+                'LAM', 'g',
+                right=Term(
+                    'APP',
+                    left=f,
+                    right=Term(
+                        'APP',
+                        left=g,
+                        right=g
+                    )
+                )
+            ),
+            right=inner_lambda
+        )
+    )
+
+
 def ISZERO():
     n = Term('VAR', 'n')
-    return Term('LAM', 'n',
-               right=Term('APP',
-                         left=Term('APP', left=n,
-                                  right=Term('LAM', '_', right=church_false())),
-                         right=church_true()))
+    return Term(
+        'LAM', 'n',
+        right=Term(
+            'APP',
+            left=Term(
+                'APP',
+                left=n,
+                right=Term(
+                    'LAM', '_',
+                    right=church_false()
+                )
+            ),
+            right=church_true()
+        )
+    )
+
 
 def church_and():
-    return Term('LAM', 'a', right=Term('LAM', 'b',
-              right=Term('APP', left=Term('APP',
-                          left=Term('VAR', 'a'),
-                          right=Term('VAR', 'b')),
-                        right=church_false())))
+    return Term(
+        'LAM', 'a',
+        right=Term(
+            'LAM', 'b',
+            right=Term(
+                'APP',
+                left=Term(
+                    'APP',
+                    left=Term('VAR', 'a'),
+                    right=Term('VAR', 'b')
+                ),
+                right=church_false()
+            )
+        )
+    )
+
 
 def church_or():
-    return Term('LAM', 'a', right=Term('LAM', 'b',
-              right=Term('APP', left=Term('APP',
-                          left=Term('VAR', 'a'),
-                          right=church_true()),
-                        right=Term('VAR', 'b'))))
+    return Term(
+        'LAM', 'a',
+        right=Term(
+            'LAM', 'b',
+            right=Term(
+                'APP',
+                left=Term(
+                    'APP',
+                    left=Term('VAR', 'a'),
+                    right=church_true()
+                ),
+                right=Term('VAR', 'b')
+            )
+        )
+    )
+
 
 def church_one():
 

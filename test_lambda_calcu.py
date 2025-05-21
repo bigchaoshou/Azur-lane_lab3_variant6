@@ -64,15 +64,26 @@ def test_pred(interpreter3):
 
 def test_mul():
     interpreter = LambdaInterpreter(
-        strategy="normal", enable_eta=False)
+        strategy="normal",
+        enable_eta=False
+    )
+
     two = church_n(2)
     three = church_n(3)
-    mul_expr = Term('APP',
-        left=Term('APP', left=MUL(), right=two),
-            right=three)
+
+    mul_expr = Term(
+        'APP',
+        left=Term(
+            'APP',
+            left=MUL(),
+            right=two
+        ),
+        right=three
+    )
 
     result, _ = interpreter.evaluate(mul_expr)
     assert church_to_int(result) == 6
+
 
 
 def test_cons_car_cdr(interpreter3):
