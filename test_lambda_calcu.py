@@ -68,8 +68,8 @@ def test_mul():
     two = church_n(2)
     three = church_n(3)
     mul_expr = Term('APP',
-                    left=Term('APP', left=MUL(), right=two),
-                        right=three)
+        left=Term('APP', left=MUL(), right=two),
+            right=three)
 
     result, _ = interpreter.evaluate(mul_expr)
     assert church_to_int(result) == 6
@@ -79,8 +79,8 @@ def test_cons_car_cdr(interpreter3):
     one = church_one()
     two = church_n(2)
     cons_expr = Term('APP',
-                        left=Term('APP', left=CONS(), right=one),
-                            right=two)
+        left=Term('APP', left=CONS(), right=one),
+            right=two)
 
     car_expr = Term('APP', left=CAR(), right=cons_expr)
     cdr_expr = Term('APP', left=CDR(), right=cons_expr)

@@ -397,11 +397,9 @@ def PRED():
                                                     left=Term('VAR', 'g'),
                                                         right=Term('VAR','f')))))),
                                                             right=Term('LAM', 'u',
-                                                                right=Term('VAR',
-                                                                           'x'))),
-                                             right=Term('LAM', 'u',
-                                                       right=Term('VAR',
-                                                                  'u'))))))
+                                                                right=Term('VAR','x'))),
+                                                                    right=Term('LAM', 'u',
+                                                                        right=Term('VAR','u'))))))
 
 def MUL():
     return Term('LAM', 'm',
