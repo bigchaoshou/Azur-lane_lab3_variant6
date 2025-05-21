@@ -85,7 +85,6 @@ def test_mul():
     assert church_to_int(result) == 6
 
 
-
 def test_cons_car_cdr(interpreter3):
     one = church_one()
     two = church_n(2)

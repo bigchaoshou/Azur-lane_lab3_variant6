@@ -4,8 +4,11 @@ from collections import namedtuple
 import matplotlib.pyplot as plt
 import re
 
-ReductionEvent = namedtuple("ReductionEvent",
-                           "clock term reduced_term rule")
+ReductionEvent = namedtuple(
+    "ReductionEvent",
+    ["clock", "term", "reduced_term", "rule"]
+)
+
 
 
 class Term:
@@ -35,11 +38,6 @@ class Term:
 def tokenize(expr):
     tokens = re.findall(r'[λ\\]|[a-zA-Z_]\w*|\(|\)|\.', expr)
     return tokens
-
-
-import re
-import copy
-import logging
 
 
 class Term:
@@ -152,20 +150,30 @@ class LambdaInterpreter:
     def alpha_convert(self, term, old_var, new_var):
         if term is None:
             return None
+
         if term.term_type == 'VAR':
             return Term('VAR', new_var) if term.value == old_var else term
+
         elif term.term_type == 'LAM':
             if term.value == old_var:
-                return Term('LAM', new_var,
-                            right=self.alpha_convert(term.right,
-                                                      old_var, new_var))
-            return Term('LAM', term.value,
-                        right=self.alpha_convert(term.right,
-                                                 old_var, new_var))
+                return Term(
+                    'LAM',
+                    new_var,
+                    right=self.alpha_convert(term.right, old_var, new_var)
+                )
+            return Term(
+                'LAM',
+                term.value,
+                right=self.alpha_convert(term.right, old_var, new_var)
+            )
+
         elif term.term_type == 'APP':
-            return Term('APP',
-                        left=self.alpha_convert(term.left, old_var, new_var),
-                        right=self.alpha_convert(term.right, old_var, new_var))
+            return Term(
+                'APP',
+                left=self.alpha_convert(term.left, old_var, new_var),
+                right=self.alpha_convert(term.right, old_var, new_var)
+            )
+
         return term
 
     def substitute(self, term, var, replacement):
@@ -258,38 +266,45 @@ class LambdaInterpreter:
 
         if term.term_type == 'LAM':
             reduced_body, rule = self.reduce_step(term.right)
-            self.indent_level -= 1
             if reduced_body:
-                return Term('LAM', term.value, right=reduced_body), rule
-            return None, None
+                result = Term('LAM', term.value, right=reduced_body), rule
+            else:
+                result = None, None
+            self.indent_level -= 1
+            return result
 
         elif term.term_type == 'APP':
             if self.strategy == 'normal':
                 reduced_left, rule = self.reduce_step(term.left)
                 if reduced_left:
+                    result = (Term('APP', left=reduced_left, right=term.right), rule)
                     self.indent_level -= 1
-                    return Term('APP', left=reduced_left, right=term.right), rule
+                    return result
 
                 reduced_right, rule = self.reduce_step(term.right)
-                self.indent_level -= 1
                 if reduced_right:
-                    return Term('APP', left=term.left, right=reduced_right), rule
+                    result = (Term('APP', left=term.left, right=reduced_right), rule)
+                    self.indent_level -= 1
+                    return result
 
             elif self.strategy == 'applicative':
                 reduced_right, rule = self.reduce_step(term.right)
                 if reduced_right:
+                    result = (Term('APP', left=term.left, right=reduced_right), rule)
                     self.indent_level -= 1
-                    return Term('APP', left=term.left, right=reduced_right), rule
+                    return result
 
                 reduced_left, rule = self.reduce_step(term.left)
-                self.indent_level -= 1
                 if reduced_left:
-                    return Term('APP', left=reduced_left, right=term.right), rule
+                    result = (Term('APP', left=reduced_left, right=term.right), rule)
+                    self.indent_level -= 1
+                    return result
+
+        self.indent_level -= 1
 
         self.indent_level -= 1
         self._log("No reduction")
         return None, None
-
 
     def to_latex(self, term: Term) -> str:
         if term.term_type == 'VAR':
@@ -331,15 +346,23 @@ class LambdaInterpreter:
         if render_latex:
             plt.figure(figsize=(10, 1 + len(history) * 0.6))
             plt.axis('off')
-            plt.text(0.05, 1.0, self.latex_history(history),
-                    ha='left', va='top', fontsize=12,
-                    wrap=True, family='monospace')
+            plt.text(
+                0.05, 1.0,
+                self.latex_history(history),
+                ha='left',
+                va='top',
+                fontsize=12,
+                wrap=True,
+                family='monospace'
+            )
+
             plt.tight_layout()
             plt.savefig(latex_image_path, dpi=300, bbox_inches='tight')
             plt.close()
             self.logger.info(f"LaTeX saved to {latex_image_path}")
 
         return current_term, history
+
 
 # Church encodings and combinators
 def church_true():
@@ -488,6 +511,7 @@ def church_one():
 
     return church_n(1)
 
+
 def PRED():
     return Term('LAM', 'n', right=Term(
         'LAM', 'f', right=Term(
@@ -545,7 +569,6 @@ def MUL():
     )
 
 
-
 def CONS():
     a = Term('VAR', 'a')
     b = Term('VAR', 'b')
@@ -568,7 +591,6 @@ def CONS():
             )
         )
     )
-
 
 
 def CAR():
