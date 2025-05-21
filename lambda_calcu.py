@@ -7,6 +7,7 @@ import re
 ReductionEvent = namedtuple("ReductionEvent",
                            "clock term reduced_term rule")
 
+
 class Term:
     def __init__(self, term_type, value=None, left=None, right=None):
         self.term_type = term_type  # 'VAR', 'LAM', 'APP'
@@ -30,9 +31,11 @@ class Term:
             return f"({self.left} {self.right})"
         return ""
 
+
 def tokenize(expr):
     tokens = re.findall(r'[λ\\]|[a-zA-Z_]\w*|\(|\)|\.', expr)
     return tokens
+
 
 class LambdaParser:
     def __init__(self, tokens):
@@ -80,10 +83,12 @@ class LambdaParser:
         else:
             raise SyntaxError(f"Unexpected token: {tok}")
 
+
 def parse_lambda_expr(expr_str):
     tokens = tokenize(expr_str)
     parser = LambdaParser(tokens)
     return parser.parse()
+
 
 class LambdaInterpreter:
     def __init__(self, strategy="normal", enable_eta=True):
@@ -378,23 +383,25 @@ def church_one():
     return church_n(1)
 def PRED():
     return Term('LAM', 'n',
-               right=Term('LAM', 'f',
-                         right=Term('LAM', 'x',
-                                   right=Term('APP',
-                                             left=Term('APP',
-                                                      left=Term('APP',
-                                                               left=Term('VAR', 'n'),
-                                                               right=Term('LAM', 'g',
-                                                                         right=Term('LAM', 'h',
-                                                                                   right=Term('APP',
-                                                                                             left=Term('VAR', 'h'),
-                                                                                             right=Term('APP',
-                                                                                                       left=Term('VAR', 'g'),
-                                                                                                       right=Term('VAR', 'f')))))),
-                                                      right=Term('LAM', 'u',
-                                                                right=Term('VAR', 'x'))),
+        right=Term('LAM', 'f',
+            right=Term('LAM', 'x',
+                right=Term('APP',
+                    left=Term('APP',
+                        left=Term('APP',
+                            left=Term('VAR', 'n'),
+                                right=Term('LAM', 'g',
+                                    right=Term('LAM', 'h',
+                                        right=Term('APP',
+                                            left=Term('VAR', 'h'),
+                                                right=Term('APP',
+                                                    left=Term('VAR', 'g'),
+                                                        right=Term('VAR','f')))))),
+                                                            right=Term('LAM', 'u',
+                                                                right=Term('VAR',
+                                                                           'x'))),
                                              right=Term('LAM', 'u',
-                                                       right=Term('VAR', 'u'))))))
+                                                       right=Term('VAR',
+                                                                  'u'))))))
 
 def MUL():
     return Term('LAM', 'm',
@@ -403,7 +410,8 @@ def MUL():
                                    right=Term('APP',
                                              left=Term('VAR', 'm'),
                                              right=Term('APP',
-                                                       left=Term('VAR', 'n'),
+                                                       left=Term('VAR',
+                                                                 'n'),
                                                        right=Term('VAR', 'f'))))))
 
 
@@ -415,7 +423,8 @@ def CONS():
                 right=Term('LAM', 'b',
                            right=Term('LAM', 's',
                                       right=Term('APP',
-                                                 left=Term('APP', left=s, right=a),
+                                                 left=Term('APP', left=s,
+                                                           right=a),
                                                  right=b))))
 
 
@@ -454,6 +463,7 @@ def FACT():
 
     return Term('APP', left=Y, right=fact_body)
 
+
 def church_to_int(term):
     if term.term_type != 'LAM':
         raise ValueError("Not a Church numeral")
@@ -476,11 +486,13 @@ def church_to_int(term):
 
     return count_apps(body)
 
+
 def reduce_to_church_int(term, interpreter):
     result, _ = interpreter.evaluate(term)
     while result.term_type != 'LAM' or result.right.term_type != 'LAM':
         result, _ = interpreter.evaluate(result)
     return church_to_int(result)
+
 
 def church_bool_to_int(term):
     if term.term_type != 'LAM':
