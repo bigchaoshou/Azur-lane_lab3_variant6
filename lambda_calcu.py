@@ -10,7 +10,6 @@ ReductionEvent = namedtuple(
 )
 
 
-
 class Term:
     def __init__(self, term_type, value=None, left=None, right=None):
         self.term_type = term_type  # 'VAR', 'LAM', 'APP'
@@ -277,26 +276,30 @@ class LambdaInterpreter:
             if self.strategy == 'normal':
                 reduced_left, rule = self.reduce_step(term.left)
                 if reduced_left:
-                    result = (Term('APP', left=reduced_left, right=term.right), rule)
+                    result = (Term('APP', left=reduced_left,
+                                   right=term.right), rule)
                     self.indent_level -= 1
                     return result
 
                 reduced_right, rule = self.reduce_step(term.right)
                 if reduced_right:
-                    result = (Term('APP', left=term.left, right=reduced_right), rule)
+                    result = (Term('APP', left=term.left,
+                                   right=reduced_right), rule)
                     self.indent_level -= 1
                     return result
 
             elif self.strategy == 'applicative':
                 reduced_right, rule = self.reduce_step(term.right)
                 if reduced_right:
-                    result = (Term('APP', left=term.left, right=reduced_right), rule)
+                    result = (Term('APP', left=term.left,
+                                   right=reduced_right), rule)
                     self.indent_level -= 1
                     return result
 
                 reduced_left, rule = self.reduce_step(term.left)
                 if reduced_left:
-                    result = (Term('APP', left=reduced_left, right=term.right), rule)
+                    result = (Term('APP', left=reduced_left,
+                                   right=term.right), rule)
                     self.indent_level -= 1
                     return result
 
@@ -320,8 +323,14 @@ class LambdaInterpreter:
             lines.append(f"\\[{self.to_latex(term)}\\]")
         return "\n".join(lines)
 
-    def evaluate(self, term_or_str, limit=None,
-                render_latex=False, latex_image_path="reduction.png"):
+    def evaluate(
+            self,
+            term_or_str,
+            limit=None,
+            render_latex=False,
+            latex_image_path="reduction.png"
+    ):
+
         if isinstance(term_or_str, str):
             term = parse_lambda_expr(term_or_str)
         else:
