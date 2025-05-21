@@ -10,30 +10,6 @@ ReductionEvent = namedtuple(
 )
 
 
-class Term:
-    def __init__(self, term_type, value=None, left=None, right=None):
-        self.term_type = term_type  # 'VAR', 'LAM', 'APP'
-        self.value = value          # Variable name or bound variable
-        self.left = left            # Left subterm
-        self.right = right          # Right subterm
-
-        if self.term_type == 'LAM':
-            assert right is not None, (
-                f"LAM node with param {value} has no body")
-        if self.term_type == 'APP':
-            assert (left is not None and right is not None), (
-                "APP node has None child")
-
-    def __repr__(self):
-        if self.term_type == 'VAR':
-            return self.value
-        elif self.term_type == 'LAM':
-            return f"(λ{self.value}.{self.right})"
-        elif self.term_type == 'APP':
-            return f"({self.left} {self.right})"
-        return ""
-
-
 def tokenize(expr):
     tokens = re.findall(r'[λ\\]|[a-zA-Z_]\w*|\(|\)|\.', expr)
     return tokens
