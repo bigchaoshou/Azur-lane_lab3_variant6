@@ -123,7 +123,7 @@ def test_beta_reduction(interpreter3):
 
 def test_invalid_type_argument(interpreter):
     with pytest.raises(LambdaTypeError,
-            match=r"Parameter 'term_or_str' should be \(<class 'lambda_calculs.Term'>, <class 'str'>\), found <class 'int'>"
+                       match="Parameter 'term_or_str' should be \(<class 'lambda_calculs.Term'>, <class 'str'>\), found <class 'int'>"
                        ):
         interpreter.evaluate(123)
 
