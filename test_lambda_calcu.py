@@ -1,5 +1,5 @@
 import pytest
-from lambda_calculs import (
+from lambda_calcul import (
     Term, LambdaInterpreter,
     church_true, church_false,
     church_zero, church_one, church_n,
