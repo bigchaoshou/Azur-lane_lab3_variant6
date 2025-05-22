@@ -71,7 +71,6 @@ def arg_type(pos: int, expected_type: Union[type, tuple]):
                 )
 
             param_name = params[pos].name
-            hint_type = params[pos].annotation
 
             bound_args = sig.bind(*args, **kwargs)
             bound_args.apply_defaults()
