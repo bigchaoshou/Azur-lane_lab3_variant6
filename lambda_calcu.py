@@ -21,7 +21,7 @@ class LambdaValueError(ValueError):
     pass
 
 
-def arg_value(pos: int, 
+def arg_value(pos: int,
               condition, error_msg="The parameter value is invalid."):
 
     def decorator(func):
@@ -47,7 +47,8 @@ def arg_value(pos: int,
 
             if not condition(value):
                 raise LambdaValueError(
-                    f"{error_msg}: The value of parameter '{param_name}' is {value}"
+                    f"{error_msg}: The value of parameter "
+                    f"'{param_name}' is {value}"
                 )
             return func(*args, **kwargs)
 
@@ -65,7 +66,8 @@ def arg_type(pos: int, expected_type: Union[type, tuple]):
         def wrapper(*args, **kwargs):
             if pos >= len(params):
                 raise LambdaTypeError(
-                    f"Positional parameter index {pos} exceeds the number of function parameters {len(params)}"
+                    f"Positional parameter index {pos} exceeds the number of "
+                    f"function parameters {len(params)}"
                 )
 
             param_name = params[pos].name
@@ -131,7 +133,10 @@ class LambdaParser:
         self.pos = 0
 
     def current(self):
-        return self.tokens[self.pos] if self.pos < len(self.tokens) else None
+        if self.pos < len(self.tokens):
+            return self.tokens[self.pos]
+        else:
+            return None
 
     def eat(self, expected=None):
         tok = self.current()
