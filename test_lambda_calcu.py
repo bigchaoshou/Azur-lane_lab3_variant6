@@ -1,5 +1,5 @@
 import pytest
-from lambda_calcul import (
+from lambda_calcu import (
     Term, LambdaInterpreter,
     church_true, church_false,
     church_zero, church_one, church_n,
@@ -123,7 +123,7 @@ def test_beta_reduction(interpreter3):
 
 def test_invalid_type_argument(interpreter):
     with pytest.raises(LambdaTypeError,
-            match="Parameter 'term_or_str' should be \(<class 'lambda_calculs.Term'>, <class 'str'>\), found <class 'int'>"
+            match=r"Parameter 'term_or_str' should be \(<class 'lambda_calculs.Term'>, <class 'str'>\), found <class 'int'>"
                        ):
         interpreter.evaluate(123)
 
