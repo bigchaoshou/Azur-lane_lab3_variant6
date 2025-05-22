@@ -122,15 +122,24 @@ def test_beta_reduction(interpreter3):
 
 
 def test_invalid_type_argument(interpreter):
-    with pytest.raises(LambdaTypeError,
-                       match="Parameter 'term_or_str' should be \(<class 'lambda_calcu.Term'>, <class 'str'>\), found <class 'int'>"
-                       ):
-        interpreter.evaluate(123)
+    with pytest.raises(
+        LambdaTypeError,
+        match=(
+            r"Parameter 'term_or_str' should be "
+            r"\(<class 'lambda_calcu.Term'>, <class 'str'>\), found <class 'int'>"
+        )
+    ):
+    interpreter.evaluate(123)
+
 
 
 def test_invalid_value_argument(interpreter3):
     term = "(λx. x x) (λx. x x)"
-    with pytest.raises(LambdaValueError,
-                       match="limit must be a non-negative number or None: The value of parameter 'limit' is -1"
-                       ):
-        interpreter3.evaluate(term, limit=-1)
+    with pytest.raises(
+        LambdaValueError,
+        match=(
+            "limit must be a non-negative number or None: "
+            "The value of parameter 'limit' is -1"
+        )
+    ):
+    interpreter3.evaluate(term, limit=-1)
