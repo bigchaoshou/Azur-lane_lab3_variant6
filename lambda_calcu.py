@@ -1,13 +1,102 @@
 import copy
 import logging
 from collections import namedtuple
-import matplotlib.pyplot as plt
+from typing import Union, get_origin, get_args
 import re
+import inspect
+import functools
+from functools import wraps
 
 ReductionEvent = namedtuple(
     "ReductionEvent",
     ["clock", "term", "reduced_term", "rule"]
 )
+
+
+class LambdaTypeError(TypeError):
+    pass
+
+
+class LambdaValueError(ValueError):
+    pass
+
+def arg_value(pos: int, condition, error_msg="The parameter value is invalid."):
+
+    def decorator(func):
+        sig = inspect.signature(func)
+        params = [
+            p for p in sig.parameters.values()
+            if p.kind in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.KEYWORD_ONLY
+            )
+        ]
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            if pos >= len(params):
+                raise LambdaValueError(f"Parameter index {pos} out of range")
+
+            param_name = params[pos].name
+            bound_args = sig.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+            value = bound_args.arguments.get(param_name)
+
+            if not condition(value):
+                raise LambdaValueError(
+                    f"{error_msg}: The value of parameter '{param_name}' is {value}"
+                )
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def arg_type(pos: int, expected_type: Union[type, tuple]):
+    def decorator(func):
+        sig = inspect.signature(func)
+        params = list(sig.parameters.values())
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            if pos >= len(params):
+                raise LambdaTypeError(f"Positional parameter index {pos} exceeds the number of function parameters {len(params)}")
+
+            param_name = params[pos].name
+            hint_type = params[pos].annotation
+
+            bound_args = sig.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+            value = bound_args.arguments.get(param_name)
+
+            def check_type(value, hint_type):
+                origin = get_origin(hint_type)
+                args_ = get_args(hint_type)
+                if origin is Union:
+                    return any(check_type(value, t) for t in args_)
+                elif origin is not None:
+                    return isinstance(value, origin)
+                else:
+                    return isinstance(value, hint_type)
+
+            if not check_type(value, expected_type):
+                raise LambdaTypeError(
+                    f"Parameter '{param_name}' should be {expected_type}, found {type(value)}"
+                )
+            return func(*args, **kwargs)
+
+        return wrapper
+    return decorator
+
+
+def is_non_negative(value: int) -> bool:
+    return value >= 0 if value is not None else True
+
+
+def is_strategy_valid(value: str) -> bool:
+    return value in ["normal", "applicative"]
 
 
 class Term:
@@ -27,7 +116,6 @@ class Term:
         return "<InvalidTerm>"
 
 
-# Tokenizer for lambda expressions
 def tokenize(expr_str):
     return re.findall(r'[\\λ().]|[a-zA-Z_][a-zA-Z0-9_]*', expr_str)
 
@@ -89,6 +177,7 @@ def parse_lambda_expr(expr_str):
 
 
 class LambdaInterpreter:
+    @arg_type(1, str)
     def __init__(self, strategy="normal", enable_eta=True):
         self.strategy = strategy
         self.enable_eta = enable_eta
@@ -102,10 +191,12 @@ class LambdaInterpreter:
         indent = "  " * self.indent_level
         self.logger.debug(indent + msg)
 
+    @arg_type(1, str)
     def fresh_var(self, base='x'):
         self.counter += 1
         return f"{base}_{self.counter}"
 
+    @arg_type(1, Term)
     def free_vars(self, term):
         if term is None:
             return set()
@@ -117,6 +208,9 @@ class LambdaInterpreter:
             return self.free_vars(term.left) | self.free_vars(term.right)
         return set()
 
+    @arg_type(1, Term)
+    @arg_type(2, str)
+    @arg_type(3, str)
     def alpha_convert(self, term, old_var, new_var):
         if term is None:
             return None
@@ -146,6 +240,9 @@ class LambdaInterpreter:
 
         return term
 
+    @arg_type(1, Term)
+    @arg_type(2, str)
+    @arg_type(3, Term)
     def substitute(self, term, var, replacement):
         if term is None:
             return None
@@ -168,6 +265,7 @@ class LambdaInterpreter:
             return Term('APP', left=new_left, right=new_right)
         return term
 
+    @arg_type(1, Term)
     def beta_reduction(self, term):
         self._log(f"Attempt β-reduction: {self.to_latex(term)}")
 
@@ -192,6 +290,7 @@ class LambdaInterpreter:
         self._log("β failed: left is not LAM")
         return None, None
 
+    @arg_type(1, Term)
     def eta_reduction(self, term):
         self._log(f"Attempt η-reduction: {self.to_latex(term)}")
 
@@ -213,6 +312,7 @@ class LambdaInterpreter:
         self._log("η reduction failed")
         return None, None
 
+    @arg_type(1, Term)
     def reduce_step(self, term):
         self._log(f"reduce_step input: {self.to_latex(term)}")
         if term is None:
@@ -280,6 +380,7 @@ class LambdaInterpreter:
         self._log("No reduction")
         return None, None
 
+    @arg_type(1, Term)
     def to_latex(self, term: Term) -> str:
         if term.term_type == 'VAR':
             return term.value
@@ -290,20 +391,26 @@ class LambdaInterpreter:
         else:
             raise ValueError(f"Unknown term type: {term.term_type}")
 
+    @arg_type(1, Term)
     def latex_history(self, history):
         lines = []
         for i, (_, term) in enumerate(history):
             lines.append(f"\\[{self.to_latex(term)}\\]")
         return "\n".join(lines)
 
+    @arg_type(1, (Term, str))
+    @arg_type(2, (int, type(None)))
+    @arg_value(2, lambda x: x is None or x >= 0, "limit must be a non-negative number or None")
+
+    @arg_type(3, bool)
+    @arg_type(4, str)
     def evaluate(
             self,
             term_or_str,
             limit=None,
             render_latex=False,
-            latex_image_path="reduction.png"
+            output_path="reduction.txt"
     ):
-
         if isinstance(term_or_str, str):
             term = parse_lambda_expr(term_or_str)
         else:
@@ -325,28 +432,15 @@ class LambdaInterpreter:
             clock += 1
             history.append((clock, copy.deepcopy(current_term)))
 
-        if render_latex:
-            plt.figure(figsize=(10, 1 + len(history) * 0.6))
-            plt.axis('off')
-            plt.text(
-                0.05, 1.0,
-                self.latex_history(history),
-                ha='left',
-                va='top',
-                fontsize=12,
-                wrap=True,
-                family='monospace'
-            )
-
-            plt.tight_layout()
-            plt.savefig(latex_image_path, dpi=300, bbox_inches='tight')
-            plt.close()
-            self.logger.info(f"LaTeX saved to {latex_image_path}")
+        if not render_latex and output_path.endswith(".txt"):
+            with open(output_path, "w", encoding="utf-8") as f:
+                for step, term in history:
+                    f.write(f"[{step}] {term}\n")
+            self.logger.info(f"Reduction trace saved to {output_path}")
 
         return current_term, history
 
 
-# Church encodings and combinators
 def church_true():
     return Term(
         'LAM', 't',
@@ -376,7 +470,7 @@ def church_zero():
         )
     )
 
-
+@arg_type(0, int)
 def church_n(n):
     x = Term('VAR', 'x')
     body = x
@@ -630,7 +724,7 @@ def FACT():
 
     return Term('APP', left=Y, right=fact_body)
 
-
+@arg_type(0, Term)
 def church_to_int(term):
     if term.term_type != 'LAM':
         raise ValueError("Not a Church numeral")
@@ -653,14 +747,15 @@ def church_to_int(term):
 
     return count_apps(body)
 
-
+@arg_type(0, Term)
+@arg_type(1, LambdaInterpreter)
 def reduce_to_church_int(term, interpreter):
     result, _ = interpreter.evaluate(term)
     while result.term_type != 'LAM' or result.right.term_type != 'LAM':
         result, _ = interpreter.evaluate(result)
     return church_to_int(result)
 
-
+@arg_type(0, Term)
 def church_bool_to_int(term):
     if term.term_type != 'LAM':
         raise ValueError("Not a Church boolean")
