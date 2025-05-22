@@ -132,8 +132,6 @@ def test_invalid_type_argument(interpreter):
         interpreter.evaluate(123)
 
 
-
-
 def test_invalid_value_argument(interpreter3):
     term = "(λx. x x) (λx. x x)"
     with pytest.raises(
