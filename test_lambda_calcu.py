@@ -1,11 +1,12 @@
 import pytest
-from lambda_calcu import (
+from lambda_calculs import (
     Term, LambdaInterpreter,
     church_true, church_false,
     church_zero, church_one, church_n,
     ISZERO, PRED, MUL,
     CONS, CAR, CDR, FACT,
     church_to_int, church_bool_to_int,
+    LambdaTypeError, LambdaValueError,
 )
 
 
@@ -118,3 +119,18 @@ def test_beta_reduction(interpreter3):
     # (λx.x) y  =>β y
     term, _ = interpreter3.evaluate("(λx.x) y")
     assert term.term_type == 'VAR' and term.value == 'y'
+
+
+def test_invalid_type_argument(interpreter):
+    with pytest.raises(LambdaTypeError,
+            match="Parameter 'term_or_str' should be \(<class 'lambda_calculs.Term'>, <class 'str'>\), found <class 'int'>"
+                       ):
+        interpreter.evaluate(123)
+
+
+def test_invalid_value_argument(interpreter3):
+    term = "(λx. x x) (λx. x x)"
+    with pytest.raises(LambdaValueError,
+                       match="limit must be a non-negative number or None: The value of parameter 'limit' is -1"
+                       ):
+        interpreter3.evaluate(term, limit=-1)
