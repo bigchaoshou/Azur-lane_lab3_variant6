@@ -126,8 +126,9 @@ def test_invalid_type_argument(interpreter):
         LambdaTypeError,
         match=(
             r"Parameter 'term_or_str' should be "
-            r"\(<class 'lambda_calcu.Term'>, <class 'str'>\), found <class 'int'>"
-        )
+            r"\(<class 'lambda_calcu.Term'>, <class 'str'>\), "
+            r"found <class 'int'>"
+        ),
     ):
         interpreter.evaluate(123)
 
