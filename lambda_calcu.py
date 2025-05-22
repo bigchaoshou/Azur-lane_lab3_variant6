@@ -87,8 +87,8 @@ def arg_type(pos: int, expected_type: Union[type, tuple]):
 
             if not check_type(value, expected_type):
                 raise LambdaTypeError(
-                    f"Parameter '{param_name}' should be {expected_type}
-                    , found {type(value)}"
+                    f"Parameter '{param_name}' should be {expected_type}, "
+                    f"found {type(value)}"
                 )
             return func(*args, **kwargs)
 
