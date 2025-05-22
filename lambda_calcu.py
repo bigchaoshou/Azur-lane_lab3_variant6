@@ -20,7 +20,9 @@ class LambdaTypeError(TypeError):
 class LambdaValueError(ValueError):
     pass
 
-def arg_value(pos: int, condition, error_msg="The parameter value is invalid."):
+
+def arg_value(pos: int, 
+              condition, error_msg="The parameter value is invalid."):
 
     def decorator(func):
         sig = inspect.signature(func)
@@ -62,7 +64,9 @@ def arg_type(pos: int, expected_type: Union[type, tuple]):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             if pos >= len(params):
-                raise LambdaTypeError(f"Positional parameter index {pos} exceeds the number of function parameters {len(params)}")
+                raise LambdaTypeError(
+                    f"Positional parameter index {pos} exceeds the number of function parameters {len(params)}"
+                )
 
             param_name = params[pos].name
             hint_type = params[pos].annotation
@@ -83,7 +87,8 @@ def arg_type(pos: int, expected_type: Union[type, tuple]):
 
             if not check_type(value, expected_type):
                 raise LambdaTypeError(
-                    f"Parameter '{param_name}' should be {expected_type}, found {type(value)}"
+                    f"Parameter '{param_name}' should be {expected_type}
+                    , found {type(value)}"
                 )
             return func(*args, **kwargs)
 
@@ -400,8 +405,8 @@ class LambdaInterpreter:
 
     @arg_type(1, (Term, str))
     @arg_type(2, (int, type(None)))
-    @arg_value(2, lambda x: x is None or x >= 0, "limit must be a non-negative number or None")
-
+    @arg_value(2, lambda x: x is None or x >= 0,
+               "limit must be a non-negative number or None")
     @arg_type(3, bool)
     @arg_type(4, str)
     def evaluate(
@@ -469,6 +474,7 @@ def church_zero():
             right=Term('VAR', 'x')
         )
     )
+
 
 @arg_type(0, int)
 def church_n(n):
@@ -724,6 +730,7 @@ def FACT():
 
     return Term('APP', left=Y, right=fact_body)
 
+
 @arg_type(0, Term)
 def church_to_int(term):
     if term.term_type != 'LAM':
@@ -747,6 +754,7 @@ def church_to_int(term):
 
     return count_apps(body)
 
+
 @arg_type(0, Term)
 @arg_type(1, LambdaInterpreter)
 def reduce_to_church_int(term, interpreter):
@@ -754,6 +762,7 @@ def reduce_to_church_int(term, interpreter):
     while result.term_type != 'LAM' or result.right.term_type != 'LAM':
         result, _ = interpreter.evaluate(result)
     return church_to_int(result)
+
 
 @arg_type(0, Term)
 def church_bool_to_int(term):
