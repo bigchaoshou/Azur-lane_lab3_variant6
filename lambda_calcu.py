@@ -445,6 +445,7 @@ class LambdaInterpreter:
             with open(output_path, "w", encoding="utf-8") as f:
                 for step, term in history:
                     f.write(f"[{step}] {term}\n")
+                    print(f"[{step}] {term}\n")
             self.logger.info(f"Reduction trace saved to {output_path}")
 
         return current_term, history
