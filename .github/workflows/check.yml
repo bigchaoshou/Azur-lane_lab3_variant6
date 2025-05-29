@@ -27,10 +27,8 @@ jobs:
       #     coverage report *.py
       - name: Run tests and show coverage report
         run: |
-          # 启用调试模式
           echo "::group::Running tests with debug output"
-          # 添加 PYTHONUNBUFFERED=1 确保即时输出
-          PYTHONUNBUFFERED=1 coverage run -m pytest --verbose -s  # 添加 -s 参数禁用输出捕获
+          PYTHONUNBUFFERED=1 coverage run -m pytest --verbose -s
           echo "::endgroup::"
           
           echo "::group::Coverage report"
