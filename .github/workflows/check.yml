@@ -21,11 +21,22 @@ jobs:
       - name: Install development environment
         run: pip install pytest coverage pycodestyle pyflakes mypy
       
+      # - name: Run tests and show coverage report
+      #   run: |
+      #     coverage run -m pytest --verbose
+      #     coverage report *.py
       - name: Run tests and show coverage report
         run: |
-          coverage run -m pytest --verbose
+          # 启用调试模式
+          echo "::group::Running tests with debug output"
+          # 添加 PYTHONUNBUFFERED=1 确保即时输出
+          PYTHONUNBUFFERED=1 coverage run -m pytest --verbose -s  # 添加 -s 参数禁用输出捕获
+          echo "::endgroup::"
+          
+          echo "::group::Coverage report"
           coverage report *.py
-
+          echo "::endgroup::"
+          
       - name: Check code style
         run: pycodestyle .
 
