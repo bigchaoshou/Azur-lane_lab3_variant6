@@ -19,6 +19,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+
 class LambdaTypeError(TypeError):
     pass
 
@@ -131,8 +132,10 @@ class Term:
 def tokenize(expr_str):
     return re.findall(r'[\\λ().]|[a-zA-Z_][a-zA-Z0-9_]*', expr_str)
 
+
 def github_log(level, message):
     print(f"::{level}::{message}")
+
 
 class LambdaParser:
     def __init__(self, tokens):
