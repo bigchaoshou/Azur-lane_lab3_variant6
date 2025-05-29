@@ -452,7 +452,6 @@ class LambdaInterpreter:
             clock += 1
             history.append((clock, copy.deepcopy(current_term)))
 
-        github_log("error", "THIS IS A TEST MESSAGE")
         if not render_latex and output_path.endswith(".txt"):
             with open(output_path, "w", encoding="utf-8") as f:
                 for step, term in history:
