@@ -7,6 +7,18 @@ import inspect
 import functools
 from functools import wraps
 
+ReductionEvent = namedtuple(
+    "ReductionEvent",
+    ["clock", "term", "reduced_term", "rule"]
+)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+logger = logging.getLogger(__name__)
+
 class LambdaTypeError(TypeError):
     pass
 
@@ -119,6 +131,8 @@ class Term:
 def tokenize(expr_str):
     return re.findall(r'[\\λ().]|[a-zA-Z_][a-zA-Z0-9_]*', expr_str)
 
+def github_log(level, message):
+    print(f"::{level}::{message}")
 
 class LambdaParser:
     def __init__(self, tokens):
@@ -178,17 +192,6 @@ def parse_lambda_expr(expr_str):
     parser = LambdaParser(tokens)
     return parser.parse()
 
-ReductionEvent = namedtuple(
-    "ReductionEvent",
-    ["clock", "term", "reduced_term", "rule"]
-)
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-
-logger = logging.getLogger(__name__)
 
 class LambdaInterpreter:
     @arg_type(1, str)
@@ -450,9 +453,11 @@ class LambdaInterpreter:
             with open(output_path, "w", encoding="utf-8") as f:
                 for step, term in history:
                     f.write(f"[{step}] {term}\n")
-                    logger.info(f"[{step}] {term}")
+                    github_log("notice", f"[{step}] {term}")
 
-            logger.info(f"Reduction trace saved to {output_path}")
+            github_log("info", f"Reduction trace saved to {output_path}")
+
+        return current_term, history
 
 
 def church_true():
