@@ -7,12 +7,6 @@ import inspect
 import functools
 from functools import wraps
 
-ReductionEvent = namedtuple(
-    "ReductionEvent",
-    ["clock", "term", "reduced_term", "rule"]
-)
-
-
 class LambdaTypeError(TypeError):
     pass
 
@@ -184,6 +178,17 @@ def parse_lambda_expr(expr_str):
     parser = LambdaParser(tokens)
     return parser.parse()
 
+ReductionEvent = namedtuple(
+    "ReductionEvent",
+    ["clock", "term", "reduced_term", "rule"]
+)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+logger = logging.getLogger(__name__)
 
 class LambdaInterpreter:
     @arg_type(1, str)
@@ -445,10 +450,9 @@ class LambdaInterpreter:
             with open(output_path, "w", encoding="utf-8") as f:
                 for step, term in history:
                     f.write(f"[{step}] {term}\n")
-                    print(f"[{step}] {term}\n")
-            self.logger.info(f"Reduction trace saved to {output_path}")
+                    logger.info(f"[{step}] {term}")
 
-        return current_term, history
+            logger.info(f"Reduction trace saved to {output_path}")
 
 
 def church_true():
